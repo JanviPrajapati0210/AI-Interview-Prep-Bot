@@ -1,5 +1,9 @@
 import streamlit as st
 
+if st.button("Reset Analytics"):
+    st.session_state.clear()
+    st.rerun()
+    
 st.set_page_config(
     page_title="AI Interview Prep Bot",
     layout="wide"
