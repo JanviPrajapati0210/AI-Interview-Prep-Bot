@@ -16,8 +16,11 @@ def generate_interview_question(
     company,
     role,
     difficulty,
-    topic
+    topic,
+    previous_questions=None
 ):
+    if previous_questions is None:
+        previous_questions=[]
 
     prompt = f"""
 You are a senior interviewer.
@@ -29,9 +32,16 @@ Role: {role}
 Difficulty: {difficulty}
 Topic: {topic}
 
+Do NOT generate any of these questions:
+
+{previous_questions}
+
 Requirements:
 - Similar to real interviews
-- Based on recent trends
+- Based on recent interview trends
+- Practical
+- Technical
+- Unique
 - Return ONLY the question
 """
 
