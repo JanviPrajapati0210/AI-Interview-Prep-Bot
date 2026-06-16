@@ -6,9 +6,16 @@ from utils.groq_evaluator import (
     evaluate_answer
 )
 
+st.set_page_config(
+    page_title="Mock Interview",
+    layout="wide"
+)
+
 st.title("🎤 Mock Interview Mode")
 
+# -------------------------
 # Session State
+# -------------------------
 
 if "mi_scores" not in st.session_state:
     st.session_state["mi_scores"] = []
@@ -31,10 +38,18 @@ if "all_scores" not in st.session_state:
 if "weak_topics" not in st.session_state:
     st.session_state["weak_topics"] = {}
 
+if "asked_questions" not in st.session_state:
+    st.session_state["asked_questions"] = []
+
+if "answer_submitted" not in st.session_state:
+    st.session_state["answer_submitted"] = False
+
+# -------------------------
 # Settings
+# -------------------------
 
 company = st.selectbox(
-    "Company",
+    "🏢 Company",
     [
         "Google",
         "Amazon",
@@ -50,7 +65,7 @@ company = st.selectbox(
 )
 
 role = st.selectbox(
-    "Role",
+    "💼 Role",
     [
         "Software Engineer",
         "AI/ML Engineer",
@@ -61,13 +76,14 @@ role = st.selectbox(
 )
 
 difficulty = st.selectbox(
-    "Difficulty",
+    "📊 Difficulty",
     [
         "Easy",
         "Medium",
         "Hard"
     ]
 )
+
 topic = st.selectbox(
     "📚 Topic",
     [
@@ -78,7 +94,9 @@ topic = st.selectbox(
     ]
 )
 
+# -------------------------
 # Start Interview
+# -------------------------
 
 if st.button("🎤 Start Mock Interview"):
 
@@ -86,12 +104,16 @@ if st.button("🎤 Start Mock Interview"):
     st.session_state["mi_question"] = None
     st.session_state["mi_count"] = 0
     st.session_state["mi_feedback"] = None
+    st.session_state["asked_questions"] = []
+    st.session_state["answer_submitted"] = False
+
     st.session_state["mi_started"] = True
 
     st.rerun()
 
+# -------------------------
 # Generate Question
-
+# -------------------------
 
 if (
     st.session_state["mi_started"]
@@ -99,19 +121,27 @@ if (
     and st.session_state["mi_question"] is None
 ):
 
-    with st.spinner("Generating Question..."):
+    with st.spinner("Generating Interview Question..."):
 
         question = generate_interview_question(
             company,
             role,
             difficulty,
-            topic
+            topic,
+            st.session_state["asked_questions"]
         )
 
     st.session_state["mi_question"] = question
+
+    st.session_state["asked_questions"].append(
+        question
+    )
+
     st.session_state["mi_count"] += 1
 
+# -------------------------
 # Interview UI
+# -------------------------
 
 if st.session_state["mi_question"]:
 
@@ -132,18 +162,21 @@ if st.session_state["mi_question"]:
         height=200
     )
 
-    if st.button("✅ Submit Answer"):
+    if (
+        st.button("✅ Submit Answer")
+        and not st.session_state["answer_submitted"]
+    ):
 
         if answer.strip() == "":
 
             st.warning(
-                "Please enter an answer."
+                "Please enter your answer."
             )
 
         else:
 
             with st.spinner(
-                "Evaluating..."
+                "AI Interviewer Evaluating..."
             ):
 
                 feedback = evaluate_answer(
@@ -152,8 +185,6 @@ if st.session_state["mi_question"]:
                 )
 
             st.session_state["mi_feedback"] = feedback
-
-            # Extract Score
 
             match = re.search(
                 r"Score\s*:?\s*(\d+)",
@@ -164,25 +195,51 @@ if st.session_state["mi_question"]:
             if match:
 
                 score = int(
-                    match.group(1))
+                    match.group(1)
+                )
+
+                # Weak Topic Tracking
+
                 if topic not in st.session_state["weak_topics"]:
-                    st.session_state["weak_topics"][topic] = []
 
-                st.session_state["weak_topics"][topic].append(score)
+                    st.session_state[
+                        "weak_topics"
+                    ][topic] = []
 
-                st.session_state["mi_scores"].append(
-                    score
-                )
+                st.session_state[
+                    "weak_topics"
+                ][topic].append(score)
 
-                st.session_state["all_scores"].append(
+                # Mock Scores
+
+                st.session_state[
+                    "mi_scores"
+                ].append(score)
+
+                # Analytics Storage
+
+                st.session_state[
+                    "all_scores"
+                ].append(
                     {
-                      "topic":topic,
-                      "score":score
-                      }
+                        "topic": topic,
+                        "company": company,
+                        "difficulty": difficulty,
+                        "question":
+                        st.session_state[
+                            "mi_question"
+                        ],
+                        "score": score
+                    }
                 )
 
-    # Show Feedback
+            st.session_state[
+                "answer_submitted"
+            ] = True
 
+    # -------------------------
+    # Feedback
+    # -------------------------
 
     if st.session_state["mi_feedback"]:
 
@@ -194,20 +251,32 @@ if st.session_state["mi_question"]:
             st.session_state["mi_feedback"]
         )
 
-        if st.session_state["mi_count"] < 5:
+        if (
+            st.session_state["mi_count"]
+            < 5
+        ):
 
             if st.button(
                 "➡️ Next Question"
             ):
 
-                st.session_state["mi_question"] = None
-                st.session_state["mi_feedback"] = None
+                st.session_state[
+                    "mi_question"
+                ] = None
+
+                st.session_state[
+                    "mi_feedback"
+                ] = None
+
+                st.session_state[
+                    "answer_submitted"
+                ] = False
 
                 st.rerun()
 
-
+# -------------------------
 # Final Report
-
+# -------------------------
 
 if len(st.session_state["mi_scores"]) == 5:
 
@@ -218,9 +287,13 @@ if len(st.session_state["mi_scores"]) == 5:
     )
 
     avg = (
-        sum(st.session_state["mi_scores"])
+        sum(
+            st.session_state["mi_scores"]
+        )
         /
-        len(st.session_state["mi_scores"])
+        len(
+            st.session_state["mi_scores"]
+        )
     )
 
     st.metric(
@@ -243,11 +316,11 @@ if len(st.session_state["mi_scores"]) == 5:
     else:
 
         st.error(
-            "⚠️ Weak Fundamentals"
+            "⚠️ Focus on Fundamentals"
         )
 
     st.subheader(
-        "📊 Score Breakdown"
+        "📊 Question-wise Scores"
     )
 
     for i, score in enumerate(
