@@ -13,8 +13,9 @@ An AI-powered interview preparation platform built using **Python**, **Streamlit
 * Role-based question generation.
 * Difficulty levels (Easy, Medium, Hard).
 * Topic-based questions (DSA, Python, SQL, AI/ML).
-* AI-generated hints for guidance.
 * Instant answer evaluation and feedback.
+* AI-generated hints for guidance.
+
 
 ### 🎤 Mock Interview Mode
 
